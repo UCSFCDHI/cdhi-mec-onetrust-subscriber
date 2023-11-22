@@ -28,3 +28,7 @@ src/main/resources/weave
 target/*
 .mule/*
 exchange-docs/home.md
+/bin/
+/target/
+.classpath
+.project
