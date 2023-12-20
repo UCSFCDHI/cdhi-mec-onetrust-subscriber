@@ -8,13 +8,19 @@ http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/
 http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd">
 	<flow name="anypointmq-onetrust-subscriber" doc:id="d4d115e2-a121-4dba-b988-221035a39aa2" >
 		<anypoint-mq:subscriber doc:name="Subscriber" doc:id="4040a6a9-ed54-43cc-89b5-b7839a946017" config-ref="Anypoint_MQ_Config-Onetrust" destination="new-lead-ot-datasubject-in" outputMimeType="application/json" />
-		<logger level="INFO" doc:name="TODO: get cp token" doc:id="a0238d10-3000-470c-a003-00df5b4106a9" message="#['purpose:' ++ payload.payload.profiles[0].purposeId]" />
+		<set-variable value="#[payload]" doc:name="tmpPayload" doc:id="d4017077-4a5a-4dd6-9825-99a7d5535e33" variableName="tmpPayload"/>
+		<set-variable value="#[payload.collectionPoint]" doc:name="collectionPt" doc:id="481554e8-8fea-4b03-a415-4b4f6d604072" variableName="collectionPt"/>
 		<ee:transform doc:name="Transform Message" doc:id="055eebb3-6564-479c-a6f0-620719d2e568" >
 			<ee:message >
 				<ee:set-payload ><![CDATA[%dw 2.0
-output application/java
+output application/json
 ---
 {
+	identifier: payload.identifier,
+	"generateInstantLinkToken": true,
+	parentPrimaryIdentifiers: payload.parentPrimaryIdentifiers,
+	dsDataElements: payload.dsDataElements
+	
 }]]></ee:set-payload>
 			</ee:message>
 		</ee:transform>
@@ -31,5 +37,11 @@ output application/java
 	collectionpt : vars.collectionpt
 }]]]></http:query-params>
 		</http:request>
+		<logger level="INFO" doc:name="Logger" doc:id="87afb1b9-8a92-476c-b56c-849266591ae7" />
+		<error-handler >
+			<on-error-continue enableNotifications="true" logException="true" doc:name="On Error Continue" doc:id="b5162478-48b0-4146-b8d9-ee379535b83c" >
+				<logger level="INFO" doc:name="TODO: push tmppayload into error q" doc:id="e1a28be6-9f08-4658-9aaa-6df015466a20" />
+			</on-error-continue>
+		</error-handler>
 	</flow>
 </mule>

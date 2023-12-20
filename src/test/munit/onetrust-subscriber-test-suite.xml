@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:munit="http://www.mulesoft.org/schema/mule/munit" xmlns:munit-tools="http://www.mulesoft.org/schema/mule/munit-tools"
+	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xsi:schemaLocation="
+		http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+		http://www.mulesoft.org/schema/mule/munit http://www.mulesoft.org/schema/mule/munit/current/mule-munit.xsd
+		http://www.mulesoft.org/schema/mule/munit-tools  http://www.mulesoft.org/schema/mule/munit-tools/current/mule-munit-tools.xsd">
+	<munit:config name="onetrust-subscriber-test-suite.xml" />
+	<munit:test name="onetrust-subscriber-test-suite-anypointmq-onetrust-subscriberTest" doc:id="8cfd9cf6-40f1-4217-9343-1514d5ef9ff7" description="Test">
+		<munit:behavior >
+			<munit-tools:mock-when doc:name="Mock when Subscribe" doc:id="d897b455-6676-4c9b-ae80-e5efcc857abf" processor="anypoint-mq:subscriber">
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute whereValue="Subscriber" attributeName="doc:name" />
+					<munit-tools:with-attribute whereValue="Anypoint_MQ_Config-Onetrust" attributeName="config-ref" />
+					<munit-tools:with-attribute whereValue="new-lead-ot-datasubject-in" attributeName="destination" />
+					<munit-tools:with-attribute whereValue="application/json" attributeName="outputMimeType" />
+				</munit-tools:with-attributes>
+				<munit-tools:then-return >
+					<munit-tools:payload value="#[output application/json --- &#10;&#10;readUrl('classpath://mq\mock_payload.dwl')]" />
+				</munit-tools:then-return>
+			</munit-tools:mock-when>
+			<munit-tools:mock-when doc:name="Mock when POST datasubject" doc:id="0b7031b2-6751-49e3-be43-243c624a17ae" processor="http:request">
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute whereValue="Request- datasubject" attributeName="doc:name" />
+					<munit-tools:with-attribute whereValue="HTTP_Request_PrefsCtr" attributeName="config-ref" />
+					<munit-tools:with-attribute whereValue="/mec/prefs-ctr/1.0/onetrust/datasubject" attributeName="path" />
+				</munit-tools:with-attributes>
+				<munit-tools:then-return >
+					<munit-tools:payload value="#[output application/json --- &#10;&#10;readUrl('classpath://prefs_center\mock_datasubject_payload.dwl')]" />
+				</munit-tools:then-return>
+			</munit-tools:mock-when>
+		</munit:behavior>
+		<munit:execution >
+			<munit:set-event doc:name="Set Event" doc:id="edb5a70c-4a8d-4bee-9af5-6c2d2bba15ab" >
+				<munit:payload value="#[output application/json --- &#10;&#10;readUrl('classpath://mq\mock_consentreceipt_payload.dwl')]" />
+			</munit:set-event>
+			<flow-ref doc:name="Flow-ref to anypointmq-onetrust-subscriber" doc:id="5b11fe8a-a534-49cd-8c62-04f90aa24a1d" name="anypointmq-onetrust-subscriber"/>
+		</munit:execution>
+	</munit:test>
+
+</mule>

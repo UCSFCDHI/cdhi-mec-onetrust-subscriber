@@ -35,3 +35,12 @@ pref-ctr:
   host: "dev-unified-api.ucsf.edu"
   client_id: "3e04456f45234fdabc62971070301748"
   client_secret: "C3d1cD05058C42BAb9463FBB04693862"
+messageQueue:
+  mqUrl: "https://mq-us-west-2.anypoint.mulesoft.com/api/v1"
+  clientId: "cdba0a634b1e4a409a92b2ecabc19efb"
+  queueName: "faxUploader"
+  circuitBreaker:
+    errors: "HTTP:SERVICE_UNAVAILABLE, HTTP:CONNECTIVITY, HTTP:TIMEOUT, HTTP:RETRY_EXHAUSTED, HTTP:TOO_MANY_REQUESTS, HTTP:UNAUTHORIZED"
+    threshold: "3"
+    tripTimeout: "10"
+
