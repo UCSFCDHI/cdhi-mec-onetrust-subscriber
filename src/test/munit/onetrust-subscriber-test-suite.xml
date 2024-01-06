@@ -31,5 +31,15 @@
 			<flow-ref doc:name="Flow-ref to anypointmq-onetrust-subscriber" doc:id="5b11fe8a-a534-49cd-8c62-04f90aa24a1d" name="anypointmq-onetrust-subscriber"/>
 		</munit:execution>
 	</munit:test>
+	<munit:test name="onetrust-subscriber-test-suite-anypointmq-onetrust-subscriberTest1" doc:id="a8ac79ef-c47f-4dc3-932a-03ecc59499a3" description="Test">
+		<munit:execution >
+			<flow-ref doc:name="Flow-ref to anypointmq-onetrust-subscriber" doc:id="2ab78d72-b3a3-44d3-ba30-8cc19d270f80" name="anypointmq-onetrust-subscriber"/>
+		</munit:execution>
+	</munit:test>
+	<munit:test name="onetrust-subscriber-test-suite-anypointmq-onetrust-subscriberTest2" doc:id="5f1263b4-d6c8-4a47-bf4f-dde41a9b5513" description="Test">
+		<munit:execution >
+			<flow-ref doc:name="Flow-ref to anypointmq-onetrust-subscriber" doc:id="1b91c95a-9387-4e36-9d01-2a028f3e96d0" name="anypointmq-onetrust-subscriber"/>
+		</munit:execution>
+	</munit:test>
 
 </mule>

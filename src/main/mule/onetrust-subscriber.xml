@@ -1,14 +1,15 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<mule xmlns:cloudhub="http://www.mulesoft.org/schema/mule/cloudhub" xmlns:http="http://www.mulesoft.org/schema/mule/http"
-	xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
-	xmlns:anypoint-mq="http://www.mulesoft.org/schema/mule/anypoint-mq" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+<mule xmlns:salesforce="http://www.mulesoft.org/schema/mule/salesforce" xmlns:cloudhub="http://www.mulesoft.org/schema/mule/cloudhub"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:anypoint-mq="http://www.mulesoft.org/schema/mule/anypoint-mq" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
 http://www.mulesoft.org/schema/mule/anypoint-mq http://www.mulesoft.org/schema/mule/anypoint-mq/current/mule-anypoint-mq.xsd
 http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
 http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
-http://www.mulesoft.org/schema/mule/cloudhub http://www.mulesoft.org/schema/mule/cloudhub/current/mule-cloudhub.xsd">
+http://www.mulesoft.org/schema/mule/cloudhub http://www.mulesoft.org/schema/mule/cloudhub/current/mule-cloudhub.xsd
+http://www.mulesoft.org/schema/mule/salesforce http://www.mulesoft.org/schema/mule/salesforce/current/mule-salesforce.xsd">
 	<flow name="anypointmq-onetrust-subscriber" doc:id="d4d115e2-a121-4dba-b988-221035a39aa2" >
-		<anypoint-mq:subscriber doc:name="Subscriber individual-onetrust-in" doc:id="4040a6a9-ed54-43cc-89b5-b7839a946017" config-ref="Anypoint_MQ_Config-Onetrust" destination="new-lead-ot-datasubject-in" outputMimeType="application/json" >
+		<anypoint-mq:subscriber doc:name="Subscriber individual-onetrust-in" doc:id="4040a6a9-ed54-43cc-89b5-b7839a946017" config-ref="Anypoint_MQ_Config-Onetrust" destination="individual-onetrust-in" outputMimeType="application/json" >
 			<reconnect />
 			<anypoint-mq:circuit-breaker onErrorTypes="${messageQueue.circuitBreaker.errors}" tripTimeout="${messageQueue.circuitBreaker.tripTimeout}" errorsThreshold="${messageQueue.circuitBreaker.threshold}"/>
 		</anypoint-mq:subscriber>
@@ -16,35 +17,20 @@ http://www.mulesoft.org/schema/mule/cloudhub http://www.mulesoft.org/schema/mule
 		<set-variable value="#[payload.collectionPoint]" doc:name="collectionpt" doc:id="481554e8-8fea-4b03-a415-4b4f6d604072" variableName="collectionpt"/>
 		<flow-ref doc:name="onetrust-collectionpt-get" doc:id="c7baf672-6c1d-45f1-8e8b-cd8d27fd42cb" name="onetrust-collectionpt-get"/>
 		<set-variable value="#[payload.token]" doc:name="cpToken" doc:id="1c8dec65-30ea-455e-9e57-008e1f8a83aa" variableName="cpToken"/>
-		<ee:transform doc:name="Transform Message" doc:id="055eebb3-6564-479c-a6f0-620719d2e568" >
+		<flow-ref doc:name="onetrust-subscriber-child-profile" doc:id="13d7c825-1439-4fa4-b8bd-967a5c23f11d" name="onetrust-subscriber-child-profile"/>
+		<flow-ref doc:name="onetrust-subscriber-parent-profile" doc:id="fdd06c2b-7628-4999-84a6-83a6158139fe" name="onetrust-subscriber-parent-profile"/>
+		<ee:transform doc:name="TODO: Transform Message" doc:id="f405fa8f-952f-4ea1-81f0-68ec5a790a47" >
 			<ee:message >
 				<ee:set-payload ><![CDATA[%dw 2.0
 output application/json
 ---
 {
-	test: true,
-	requestInformation: vars.cpToken,
-	identifier: vars.tmpPayload.identifier,
-	generateInstantLinkToken: true,
-	parentPrimaryIdentifiers: vars.tmpPayload.parentPrimaryIdentifiers,
-	dsDataElements: vars.tmpPayload.dsDataElements
-	
+	identifiers: vars.tmpPayload,
+	primaryIdentifier: vars.tmpPayload
 }]]></ee:set-payload>
 			</ee:message>
 		</ee:transform>
-		<http:request method="POST" doc:name="Request- datasubject" doc:id="3a377429-69b1-4ecf-a5a5-4073e00e8856" config-ref="HTTP_Request_PrefsCtr" path="/mec/prefs-ctr/1.0/onetrust/datasubject">
-			<http:headers ><![CDATA[#[output application/java
----
-{
-	client_secret : '${pref-ctr.client_secret}',
-	client_id : '${pref-ctr.client_id}'
-}]]]></http:headers>
-			<http:query-params ><![CDATA[#[output application/java
----
-{
-	collectionpt : vars.collectionpt
-}]]]></http:query-params>
-		</http:request>
+		<flow-ref doc:name="onetrust-link-identities-post" doc:id="acd482bf-92fa-441e-b345-e85f290663df" name="onetrust-link-identities-post" />
 		<ee:transform doc:name="Transform Message" doc:id="f5a22c38-5f6d-466e-90a2-5552a7b9b5e7" >
 			<ee:message >
 				<ee:set-payload ><![CDATA[%dw 2.0
@@ -57,6 +43,7 @@ output application/json
 			</ee:message>
 		</ee:transform>
 		<logger level="INFO" doc:name="TODO: map OT guids w/SFDC identifiers" doc:id="87afb1b9-8a92-476c-b56c-849266591ae7" />
+		<salesforce:publish-platform-event-message doc:name="TODO: Publish platform event message" doc:id="5184122e-6dc5-44f2-8743-740f59b7fad6" config-ref="Salesforce_Config" platformEventName="/data/datasubject"/>
 		<error-handler >
 			<on-error-continue enableNotifications="true" logException="true" doc:name="On Error Continue" doc:id="b5162478-48b0-4146-b8d9-ee379535b83c" >
 				<logger level="INFO" doc:name="TODO: push tmppayload into error q" doc:id="e1a28be6-9f08-4658-9aaa-6df015466a20" />
@@ -79,4 +66,42 @@ output application/java
 			</on-error-continue>
 		</error-handler>
 	</flow>
+	<sub-flow name="onetrust-subscriber-child-profile" doc:id="34b470c9-b922-421c-9a3e-a3f96fbbf905" >
+		<ee:transform doc:name="Transform Message" doc:id="1b5e69f6-5304-490c-91a4-cbb6dce27147" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	test: true,
+	requestInformation: vars.cpToken,
+	identifier: vars.tmpPayload.identifier,
+	shortLinkToken: true,
+	purposes: vars.tmpPayload.purposes,
+	parentPrimaryIdentifiers: vars.tmpPayload.parentPrimaryIdentifiers,
+	dsDataElements: vars.tmpPayload.dsDataElements
+	
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<flow-ref doc:name="onetrust-consentreceipts-post" doc:id="d25d841c-3548-405f-ae2c-3938faa3843f" name="onetrust-consentreceipts-post" />
+	</sub-flow>
+	<sub-flow name="onetrust-subscriber-parent-profile" doc:id="aef93c9c-144f-4571-ab87-6f61db2a55be" >
+		<ee:transform doc:name="Transform Message" doc:id="54d99607-8b9b-4d4e-957d-b86dce3ff44b" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	test: true,
+	requestInformation: vars.cpToken,
+	identifier: vars.tmpPayload.identifier,
+	parentPrimaryIdentifiers: vars.tmpPayload.parentPrimaryIdentifiers,
+	dsDataElements: vars.tmpPayload.dsDataElements
+	
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<flow-ref doc:name="onetrust-consentreceipts-post" doc:id="a128a03d-d951-45fe-ac69-236e266d01c1" name="onetrust-consentreceipts-post" />
+	</sub-flow>
 </mule>
