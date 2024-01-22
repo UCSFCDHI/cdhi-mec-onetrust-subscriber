@@ -31,6 +31,7 @@ onetrust:
   api_token: "ZjIxOTNhZTkyYjQwNDRmYmJjYzFkZjNjMjAxZDY2ZDA6Qzl3WklxdEg2NXp5QkFjOFNJYVN4WG5ETjYyNUxRaUg="
   pref_url: "https://privacyportal-uat-na01.onetrust.com/ui/#/preferences/multipage/token/"
   tenant_id: "3f7d73cb-56ff-4414-b776-0930993842c6"
+  is_test: "true"
 pref-ctr:
   host: "dev-unified-api.ucsf.edu"
   client_id: "3e04456f45234fdabc62971070301748"
@@ -40,7 +41,7 @@ messageQueue:
   clientId: "cdba0a634b1e4a409a92b2ecabc19efb"
   queueName: "individual-onetrust-in"
   circuitBreaker:
-    errors: "HTTP:SERVICE_UNAVAILABLE, HTTP:CONNECTIVITY, HTTP:TIMEOUT, HTTP:RETRY_EXHAUSTED, HTTP:TOO_MANY_REQUESTS, HTTP:UNAUTHORIZED"
+    errors: "HTTP:SERVICE_UNAVAILABLE, HTTP:CONNECTIVITY, HTTP:TIMEOUT, HTTP:RETRY_EXHAUSTED, HTTP:TOO_MANY_REQUESTS, HTTP:UNAUTHORIZED, MULE:RETRY_EXHAUSTED"
     threshold: "3"
     tripTimeout: "10"
 cloudhub:

@@ -9,18 +9,6 @@
 		http://www.mulesoft.org/schema/mule/munit-tools  http://www.mulesoft.org/schema/mule/munit-tools/current/mule-munit-tools.xsd">
 	<munit:config name="onetrust-subscriber-test-suite.xml" />
 	<munit:test name="onetrust-subscriber-test-suite-anypointmq-onetrust-subscriberTest" doc:id="8cfd9cf6-40f1-4217-9343-1514d5ef9ff7" description="Test">
-		<munit:behavior >
-			<munit-tools:mock-when doc:name="Mock when POST datasubject" doc:id="0b7031b2-6751-49e3-be43-243c624a17ae" processor="http:request">
-				<munit-tools:with-attributes >
-					<munit-tools:with-attribute whereValue="Request- datasubject" attributeName="doc:name" />
-					<munit-tools:with-attribute whereValue="HTTP_Request_PrefsCtr" attributeName="config-ref" />
-					<munit-tools:with-attribute whereValue="/mec/prefs-ctr/1.0/onetrust/datasubject" attributeName="path" />
-				</munit-tools:with-attributes>
-				<munit-tools:then-return >
-					<munit-tools:payload value="#[output application/json --- &#10;&#10;readUrl('classpath://prefs_center\mock_datasubject_payload.dwl')]" />
-				</munit-tools:then-return>
-			</munit-tools:mock-when>
-		</munit:behavior>
 		<munit:execution >
 			<munit:set-event doc:name="Set Event" doc:id="edb5a70c-4a8d-4bee-9af5-6c2d2bba15ab" >
 				<munit:payload value="#[output application/json --- &#10;&#10;readUrl('classpath://mq\mock_datasubject_payload.dwl')]" />
@@ -31,15 +19,4 @@
 			<flow-ref doc:name="Flow-ref to anypointmq-onetrust-subscriber" doc:id="5b11fe8a-a534-49cd-8c62-04f90aa24a1d" name="anypointmq-onetrust-subscriber"/>
 		</munit:execution>
 	</munit:test>
-	<munit:test name="onetrust-subscriber-test-suite-anypointmq-onetrust-subscriberTest1" doc:id="a8ac79ef-c47f-4dc3-932a-03ecc59499a3" description="Test">
-		<munit:execution >
-			<flow-ref doc:name="Flow-ref to anypointmq-onetrust-subscriber" doc:id="2ab78d72-b3a3-44d3-ba30-8cc19d270f80" name="anypointmq-onetrust-subscriber"/>
-		</munit:execution>
-	</munit:test>
-	<munit:test name="onetrust-subscriber-test-suite-anypointmq-onetrust-subscriberTest2" doc:id="5f1263b4-d6c8-4a47-bf4f-dde41a9b5513" description="Test">
-		<munit:execution >
-			<flow-ref doc:name="Flow-ref to anypointmq-onetrust-subscriber" doc:id="1b91c95a-9387-4e36-9d01-2a028f3e96d0" name="anypointmq-onetrust-subscriber"/>
-		</munit:execution>
-	</munit:test>
-
 </mule>
