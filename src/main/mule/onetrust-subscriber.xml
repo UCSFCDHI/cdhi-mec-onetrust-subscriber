@@ -1,20 +1,35 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<mule xmlns:salesforce="http://www.mulesoft.org/schema/mule/salesforce" xmlns:cloudhub="http://www.mulesoft.org/schema/mule/cloudhub"
-	xmlns:http="http://www.mulesoft.org/schema/mule/http"
-	xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:anypoint-mq="http://www.mulesoft.org/schema/mule/anypoint-mq" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+<mule xmlns:os="http://www.mulesoft.org/schema/mule/os" xmlns:salesforce="http://www.mulesoft.org/schema/mule/salesforce"
+	xmlns:cloudhub="http://www.mulesoft.org/schema/mule/cloudhub"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:anypoint-mq="http://www.mulesoft.org/schema/mule/anypoint-mq" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
 http://www.mulesoft.org/schema/mule/anypoint-mq http://www.mulesoft.org/schema/mule/anypoint-mq/current/mule-anypoint-mq.xsd
 http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
 http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
 http://www.mulesoft.org/schema/mule/cloudhub http://www.mulesoft.org/schema/mule/cloudhub/current/mule-cloudhub.xsd
-http://www.mulesoft.org/schema/mule/salesforce http://www.mulesoft.org/schema/mule/salesforce/current/mule-salesforce.xsd">
-	<flow name="anypointmq-onetrust-subscriber" doc:id="d4d115e2-a121-4dba-b988-221035a39aa2" >
-		<anypoint-mq:subscriber doc:name="Subscriber individual-onetrust-in" doc:id="4040a6a9-ed54-43cc-89b5-b7839a946017" config-ref="Anypoint_MQ_Config-Onetrust" destination="individual-onetrust-in" outputMimeType="application/json" acknowledgementMode="MANUAL">
+http://www.mulesoft.org/schema/mule/salesforce http://www.mulesoft.org/schema/mule/salesforce/current/mule-salesforce.xsd
+http://www.mulesoft.org/schema/mule/os http://www.mulesoft.org/schema/mule/os/current/mule-os.xsd">
+	<os:object-store name="Object_store_onetrust-dead-letter" doc:name="Object store" doc:id="e04679fc-90bd-4d7b-a679-231d365568c7" />
+	<flow name="anypointmq-onetrust-subscriber" doc:id="d4d115e2-a121-4dba-b988-221035a39aa2" maxConcurrency="1">
+		<anypoint-mq:subscriber doc:name="Subscriber individual-onetrust-in" doc:id="4040a6a9-ed54-43cc-89b5-b7839a946017" config-ref="Anypoint_MQ_Config-Onetrust" destination="individual-onetrust-in-cb" outputMimeType="application/json" acknowledgementMode="MANUAL">
 			<reconnect />
+			<anypoint-mq:subscriber-type >
+				<anypoint-mq:prefetch maxLocalMessages="1" />
+			</anypoint-mq:subscriber-type>
 			<anypoint-mq:circuit-breaker onErrorTypes="${messageQueue.circuitBreaker.errors}" tripTimeout="${messageQueue.circuitBreaker.tripTimeout}" errorsThreshold="${messageQueue.circuitBreaker.threshold}" tripTimeoutUnit="MINUTES"/>
 		</anypoint-mq:subscriber>
+		<set-variable value="#[attributes.ackToken]" doc:name="ackToken" doc:id="dbbec4e9-59b0-4b39-ac12-b27691a1b66f" variableName="ackToken" />
+		<ee:transform doc:name="Transform Message" doc:id="494e7998-4294-466f-8f8c-b41aab97440b" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+read( payload, "application/json")
+]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
 		<set-variable value="#[payload]" doc:name="tmpPayload" doc:id="d4017077-4a5a-4dd6-9825-99a7d5535e33" variableName="tmpPayload"/>
-		<set-variable value="#[attributes.ackToken]" doc:name="ackToken" doc:id="dbbec4e9-59b0-4b39-ac12-b27691a1b66f" variableName="ackToken"/>
+		<set-variable value="${onetrust.api_token}" doc:name="api_token" doc:id="1293e150-02a2-46b0-9121-e5434ff78453" variableName="api_token" />
 		<flow-ref doc:name="onetrust-subscriber-child-profile" doc:id="13d7c825-1439-4fa4-b8bd-967a5c23f11d" name="onetrust-subscriber-child-profile"/>
 		<flow-ref doc:name="onetrust-subscriber-parent-profile" doc:id="fdd06c2b-7628-4999-84a6-83a6158139fe" name="onetrust-subscriber-parent-profile"/>
 		<ee:transform doc:name="Transform Message" doc:id="f405fa8f-952f-4ea1-81f0-68ec5a790a47" >
@@ -37,21 +52,26 @@ output application/json
 				<ee:set-payload ><![CDATA[%dw 2.0
 output application/json
 ---
-{
-	salesforce: vars.tmpPayload,
-	onetrust: payload
-}]]></ee:set-payload>
+
+[{
+  "Receipt__c": write(
+    {
+	  salesforce: vars.tmpPayload,
+	  onetrust: payload
+    }
+	, "application/json")
+} as Object {class: "java.util.HashMap"}]
+]]></ee:set-payload>
 			</ee:message>
 		</ee:transform>
-		<salesforce:publish-platform-event-message doc:name="TODO: Publish platform event message" doc:id="5184122e-6dc5-44f2-8743-740f59b7fad6" config-ref="Salesforce_Config2" platformEventName="OT_Data_Subject_Creation__e"/>
+		<salesforce:publish-platform-event-message doc:name="Publish platform event msg: OT Data Subject Creation" doc:id="5184122e-6dc5-44f2-8743-740f59b7fad6" config-ref="Salesforce_Config2" platformEventName="OT_Data_Subject_Creation__e"/>
 		<anypoint-mq:ack doc:name="Ack" doc:id="3584c775-297a-4eb2-87b9-93f54cfd9c79" config-ref="Anypoint_MQ_Config-Onetrust" ackToken="#[vars.ackToken]"/>
 		<error-handler >
-			<on-error-continue enableNotifications="true" logException="true" doc:name="On Error Continue" doc:id="b5162478-48b0-4146-b8d9-ee379535b83c" >
-				<logger level="INFO" doc:name="TODO: push tmppayload into error q" doc:id="e1a28be6-9f08-4658-9aaa-6df015466a20" />
-				<anypoint-mq:nack doc:name="Nack" doc:id="f0b7b8c6-ea8a-4e56-bb0c-517ca2d76612" config-ref="Anypoint_MQ_Config-Onetrust" ackToken="#[vars.ackToken]"/>
-				<ee:transform doc:name="Transform Message" doc:id="0e2d219c-d697-4f48-bb9b-bac96d59c443" >
-					<ee:message >
-						<ee:set-payload ><![CDATA[%dw 2.0
+			<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="920dd8e8-a30d-402a-9702-34008113d504" type="${messageQueue.circuitBreaker.errors}">
+				<logger level="ERROR" doc:name="log" doc:id="b8709624-d153-48d2-a09c-02d29cb94f65" message="#['onetrust-subscriber ERROR']" />
+				<ee:transform doc:name="Transform Message" doc:id="f95312a6-8bcc-4dd7-97e1-020db6aa6f0a">
+					<ee:message>
+						<ee:set-payload><![CDATA[%dw 2.0
 
 var entry = error.detailedDescription
 output application/java
@@ -62,11 +82,26 @@ output application/java
 }]]></ee:set-payload>
 					</ee:message>
 				</ee:transform>
-				<cloudhub:create-notification domain="${cloudhub.domain}" doc:id="3db71984-0053-42f8-8358-198003a52566" config-ref="CloudHub_Config" priority="ERROR" doc:name="Create Notification" >
-					<cloudhub:message ><![CDATA[#[payload.logentry]]]></cloudhub:message>
+				<cloudhub:create-notification domain="${cloudhub.domain}" doc:id="c6c62522-2998-4c96-a032-06aa3b423ea6" config-ref="CloudHub_Config" priority="ERROR" doc:name="Create Notification">
+					<cloudhub:message><![CDATA[#[payload.logentry]]]></cloudhub:message>
 				</cloudhub:create-notification>
+				<anypoint-mq:nack doc:name="Nack" doc:id="a4b52bf6-7912-4f7c-ae05-4c42b2210e0d" config-ref="Anypoint_MQ_Config-Onetrust" ackToken="#[vars.ackToken]" />
+			</on-error-propagate>
+			<on-error-continue enableNotifications="true" logException="true" doc:name="On Error Continue" doc:id="7ed99d6f-61d8-42de-b1db-dba4f422698a" type="ANY">
+				<anypoint-mq:publish doc:name="Publish: onetrust-error" doc:id="1310f607-0b96-4300-b9b0-fb6551ceb815" config-ref="Anypoint_MQ_Config-Onetrust" destination="onetrust-error"/>
+				<anypoint-mq:ack doc:name="Ack" doc:id="683968c8-c914-4a3d-badf-2ba8dc1dc93f" config-ref="Anypoint_MQ_Config-Onetrust" ackToken="#[vars.ackToken]" />
 			</on-error-continue>
 		</error-handler>
+	</flow>
+	<flow name="onetrust-subscriber-retry" doc:id="5f781613-7487-4c1d-b9c6-1f7bf6557d98" initialState="stopped">
+		<anypoint-mq:subscriber doc:name="Subscriber: onetrust-dead-letter" doc:id="be3b86cf-ae68-4e6d-9068-f8e74693534d" config-ref="Anypoint_MQ_Config-Onetrust" destination="onetrust-dead-letter">
+			<redelivery-policy maxRedeliveryCount="1" objectStore="Object_store_onetrust-dead-letter" />
+			<anypoint-mq:subscriber-type >
+				<anypoint-mq:prefetch maxLocalMessages="1" />
+			</anypoint-mq:subscriber-type>
+		</anypoint-mq:subscriber>
+		<logger level="INFO" doc:name="Logger" doc:id="c965c372-74b2-443b-8ddd-3b0453f797e2" message="#['onetrust-dead-letter RETRY']"/>
+		<anypoint-mq:publish doc:name="Publish: individual-onetrust-in-cb" doc:id="377dac90-39e8-4481-b789-7640fe6060bc" config-ref="Anypoint_MQ_Config-Onetrust" destination="individual-onetrust-in-cb"/>
 	</flow>
 	<sub-flow name="onetrust-subscriber-child-profile" doc:id="34b470c9-b922-421c-9a3e-a3f96fbbf905" >
 		<set-variable value="#[payload.collectionPointChild]" doc:name="collectionpt" doc:id="ae694b3d-1c97-417d-a18e-4263fa9c39f5" variableName="collectionpt" />
