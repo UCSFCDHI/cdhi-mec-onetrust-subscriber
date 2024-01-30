@@ -9,9 +9,26 @@
 		http://www.mulesoft.org/schema/mule/munit-tools  http://www.mulesoft.org/schema/mule/munit-tools/current/mule-munit-tools.xsd">
 	<munit:config name="onetrust-subscriber-test-suite.xml" />
 	<munit:test name="onetrust-subscriber-test-suite-anypointmq-onetrust-subscriberTest" doc:id="8cfd9cf6-40f1-4217-9343-1514d5ef9ff7" description="Test">
+		<munit:behavior >
+			<munit-tools:mock-when doc:name="Mock when SFDC platform evt" doc:id="015d22aa-b68b-41a2-bc9b-7c836d9da2ec" processor="salesforce:publish-platform-event-message">
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute whereValue="Publish platform event msg: OT Data Subject Creation" attributeName="doc:name" />
+					<munit-tools:with-attribute whereValue="5184122e-6dc5-44f2-8743-740f59b7fad6" attributeName="doc:id" />
+					<munit-tools:with-attribute whereValue="OT_Data_Subject_Creation__e" attributeName="platformEventName" />
+				</munit-tools:with-attributes>
+			</munit-tools:mock-when>
+			<munit-tools:mock-when doc:name="Mock when ACK" doc:id="ccb92fd4-b742-4bee-b5ab-d78b62f8e359" processor="anypoint-mq:ack">
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute whereValue="Ack" attributeName="doc:name" />
+					<munit-tools:with-attribute whereValue="3584c775-297a-4eb2-87b9-93f54cfd9c79" attributeName="doc:id" />
+					<munit-tools:with-attribute whereValue="Anypoint_MQ_Config-Onetrust" attributeName="config-ref" />
+				</munit-tools:with-attributes>
+			</munit-tools:mock-when>
+		</munit:behavior>
 		<munit:execution >
 			<munit:set-event doc:name="Set Event" doc:id="edb5a70c-4a8d-4bee-9af5-6c2d2bba15ab" >
-				<munit:payload value="#[output application/json --- &#10;&#10;readUrl('classpath://mq\mock_datasubject_payload.dwl')]" />
+				<munit:payload value="#[output application/json --- &#10;&#10;readUrl('classpath://mq\mock_request__c_payload.dwl')]" />
+				<munit:attributes value="#[{ackToken: '1234567890'}]" mediaType="application/java" />
 				<munit:variables >
 					<munit:variable key="api_token" value="ZjIxOTNhZTkyYjQwNDRmYmJjYzFkZjNjMjAxZDY2ZDA6Qzl3WklxdEg2NXp5QkFjOFNJYVN4WG5ETjYyNUxRaUg=" />
 				</munit:variables>
