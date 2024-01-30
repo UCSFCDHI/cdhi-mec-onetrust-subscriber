@@ -11,10 +11,10 @@ http://www.mulesoft.org/schema/mule/salesforce http://www.mulesoft.org/schema/mu
 http://www.mulesoft.org/schema/mule/os http://www.mulesoft.org/schema/mule/os/current/mule-os.xsd">
 	<os:object-store name="Object_store_onetrust-dead-letter" doc:name="Object store" doc:id="e04679fc-90bd-4d7b-a679-231d365568c7" />
 	<flow name="anypointmq-onetrust-subscriber" doc:id="d4d115e2-a121-4dba-b988-221035a39aa2" maxConcurrency="1">
-		<anypoint-mq:subscriber doc:name="Subscriber individual-onetrust-in" doc:id="4040a6a9-ed54-43cc-89b5-b7839a946017" config-ref="Anypoint_MQ_Config-Onetrust" destination="individual-onetrust-in-cb" outputMimeType="application/json" acknowledgementMode="MANUAL">
+		<anypoint-mq:subscriber doc:name="Subscriber individual-onetrust-in" doc:id="4040a6a9-ed54-43cc-89b5-b7839a946017" config-ref="Anypoint_MQ_Config-Onetrust" destination="individual-onetrust-in" outputMimeType="application/json" acknowledgementMode="MANUAL">
 			<reconnect />
 			<anypoint-mq:subscriber-type >
-				<anypoint-mq:prefetch maxLocalMessages="1" />
+				<anypoint-mq:prefetch maxLocalMessages="${messageQueue.circuitBreaker.threshold}" />
 			</anypoint-mq:subscriber-type>
 			<anypoint-mq:circuit-breaker onErrorTypes="${messageQueue.circuitBreaker.errors}" tripTimeout="${messageQueue.circuitBreaker.tripTimeout}" errorsThreshold="${messageQueue.circuitBreaker.threshold}" tripTimeoutUnit="MINUTES"/>
 		</anypoint-mq:subscriber>
@@ -93,11 +93,15 @@ output application/java
 			</on-error-continue>
 		</error-handler>
 	</flow>
-	<flow name="onetrust-subscriber-retry" doc:id="5f781613-7487-4c1d-b9c6-1f7bf6557d98" initialState="stopped">
+	<flow name="onetrust-subscriber-retry" doc:id="5f781613-7487-4c1d-b9c6-1f7bf6557d98" initialState="started">
 		<anypoint-mq:subscriber doc:name="Subscriber: onetrust-dead-letter" doc:id="be3b86cf-ae68-4e6d-9068-f8e74693534d" config-ref="Anypoint_MQ_Config-Onetrust" destination="onetrust-dead-letter">
 			<redelivery-policy maxRedeliveryCount="1" objectStore="Object_store_onetrust-dead-letter" />
 			<anypoint-mq:subscriber-type >
-				<anypoint-mq:prefetch maxLocalMessages="1" />
+				<anypoint-mq:polling >
+					<scheduling-strategy >
+						<fixed-frequency frequency="60" timeUnit="MINUTES" />
+					</scheduling-strategy>
+				</anypoint-mq:polling>
 			</anypoint-mq:subscriber-type>
 		</anypoint-mq:subscriber>
 		<logger level="INFO" doc:name="Logger" doc:id="c965c372-74b2-443b-8ddd-3b0453f797e2" message="#['onetrust-dead-letter RETRY']"/>
