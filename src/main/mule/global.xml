@@ -51,7 +51,7 @@ http://www.mulesoft.org/schema/mule/anypoint-mq http://www.mulesoft.org/schema/m
 		<salesforce:jwt-connection consumerKey="3MVG99PRsqIQWIIw0zVM_gFsS7toAr9.ABVgLmNoBS_0veuH.JhiKG.gVlS1zI6az4qQfSnppZzfBNii.DyBp" keyStore="${sfdc.keystore}" certificateAlias="mule_jwt_2023" principal="${sfdc.principal}" tokenEndpoint="${sfdc.token_endpoint}" audienceUrl="${sfdc.audience_url}" storePassword="Tb20YtrPym9jL2Gd"/>
 	</salesforce:sfdc-config>
 	<salesforce:sfdc-config name="Salesforce_Config2" doc:name="Salesforce Config" doc:id="c95d42ec-2aa0-43f7-821b-d323a504da37" >
-		<salesforce:jwt-connection consumerKey="3MVG9eMnfmfDO5NDmXW4W0sFRz6A1MbLwFMZvthgeavfiQnzBrbqLjuEedQ92AN.DfuUSpcryBjpZR8v.f2hI" keyStore="${sfdc.keystore}" certificateAlias="mule_jwt_2023" principal="otintegrationuser@ucsf.edu.otdmdev" tokenEndpoint="https://ucsf-clinicalcrm--otdmdev.sandbox.my.salesforce.com/services/oauth2/token" audienceUrl="${sfdc.audience_url}" storePassword="Tb20YtrPym9jL2Gd"/>
+		<salesforce:jwt-connection consumerKey="${sfdc.consumer_key}" keyStore="${sfdc.keystore}" certificateAlias="mule_jwt_2023" principal="${sfdc.principal}" tokenEndpoint="${sfdc.token_endpoint}" audienceUrl="${sfdc.audience_url}" storePassword="${secure::sfdc.keystore_pw}"/>
 	</salesforce:sfdc-config>
 	<anypoint-mq:config name="Anypoint_MQ_Config-Echo" doc:name="Anypoint MQ Config" doc:id="9350e93a-5454-4375-9b47-98f5226dd3d8" >
 		<anypoint-mq:connection url="https://mq-us-west-2.anypoint.mulesoft.com/api/v1/organizations/8f9ff49c-7213-45d6-ae70-a89968883c15/environments/034cb83d-ac30-489a-af9e-560493ddb656" clientId="0617b4b06ad644a9b635e9e7548f5350" clientSecret="2d550C90f3fd4d27b1CCC7292C95b64a" />
