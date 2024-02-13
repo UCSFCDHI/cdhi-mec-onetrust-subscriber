@@ -105,7 +105,7 @@ output application/java
 			</anypoint-mq:subscriber-type>
 		</anypoint-mq:subscriber>
 		<logger level="INFO" doc:name="Logger" doc:id="c965c372-74b2-443b-8ddd-3b0453f797e2" message="#['onetrust-dead-letter RETRY']"/>
-		<anypoint-mq:publish doc:name="Publish: individual-onetrust-in-cb" doc:id="377dac90-39e8-4481-b789-7640fe6060bc" config-ref="Anypoint_MQ_Config-Onetrust" destination="individual-onetrust-in-cb"/>
+		<anypoint-mq:publish doc:name="Publish: individual-onetrust-in-cb" doc:id="377dac90-39e8-4481-b789-7640fe6060bc" config-ref="Anypoint_MQ_Config-Onetrust" destination="${messageQueue.queueName}"/>
 	</flow>
 	<sub-flow name="onetrust-subscriber-child-profile" doc:id="34b470c9-b922-421c-9a3e-a3f96fbbf905" >
 		<set-variable value="#[payload.collectionPointChild]" doc:name="collectionpt" doc:id="ae694b3d-1c97-417d-a18e-4263fa9c39f5" variableName="collectionpt" />
