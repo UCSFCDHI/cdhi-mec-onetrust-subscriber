@@ -29,7 +29,7 @@ read( payload, "application/json")
 			</ee:message>
 		</ee:transform>
 		<set-variable value="#[payload]" doc:name="tmpPayload" doc:id="d4017077-4a5a-4dd6-9825-99a7d5535e33" variableName="tmpPayload"/>
-		<set-variable value="${onetrust.api_token}" doc:name="api_token" doc:id="1293e150-02a2-46b0-9121-e5434ff78453" variableName="api_token" />
+		<set-variable value="${secure::onetrust.api_token}" doc:name="api_token" doc:id="1293e150-02a2-46b0-9121-e5434ff78453" variableName="api_token" />
 		<flow-ref doc:name="onetrust-subscriber-child-profile" doc:id="13d7c825-1439-4fa4-b8bd-967a5c23f11d" name="onetrust-subscriber-child-profile"/>
 		<flow-ref doc:name="onetrust-subscriber-parent-profile" doc:id="fdd06c2b-7628-4999-84a6-83a6158139fe" name="onetrust-subscriber-parent-profile"/>
 		<ee:transform doc:name="Transform Message" doc:id="f405fa8f-952f-4ea1-81f0-68ec5a790a47" >
@@ -66,6 +66,7 @@ output application/json
 		</ee:transform>
 		<salesforce:publish-platform-event-message doc:name="Publish platform event msg: OT Data Subject Creation" doc:id="5184122e-6dc5-44f2-8743-740f59b7fad6" config-ref="Salesforce_Config2" platformEventName="OT_Data_Subject_Creation__e"/>
 		<anypoint-mq:ack doc:name="Ack" doc:id="3584c775-297a-4eb2-87b9-93f54cfd9c79" config-ref="Anypoint_MQ_Config-Onetrust" ackToken="#[vars.ackToken]"/>
+		<logger level="INFO" doc:name="Logger" doc:id="2eae0eff-e143-4be0-bfa9-5af0b0360e28" message="#['POSTed OT Data Subject Creation']"/>
 		<error-handler >
 			<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="920dd8e8-a30d-402a-9702-34008113d504" type="${messageQueue.circuitBreaker.errors}">
 				<logger level="ERROR" doc:name="log" doc:id="b8709624-d153-48d2-a09c-02d29cb94f65" message="#['onetrust-subscriber ERROR']" />
@@ -89,6 +90,23 @@ output application/java
 			</on-error-propagate>
 			<on-error-continue enableNotifications="true" logException="true" doc:name="On Error Continue" doc:id="7ed99d6f-61d8-42de-b1db-dba4f422698a" type="ANY">
 				<anypoint-mq:publish doc:name="Publish: onetrust-error" doc:id="1310f607-0b96-4300-b9b0-fb6551ceb815" config-ref="Anypoint_MQ_Config-Onetrust" destination="onetrust-error"/>
+				<logger level="ERROR" doc:name="log" doc:id="54747ff7-143a-4eb3-9ec3-fa81cbe7e691" message="#['onetrust-subscriber ERROR']" />
+				<ee:transform doc:name="Transform Message" doc:id="ae542549-1bea-472e-a847-d6001abe03e1" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+
+var entry = error.detailedDescription
+output application/java
+---
+{
+	datetime: now() as LocalDateTime,
+	logentry: 'ERROR ONETRUST SUBSCRIBER: ' ++ entry
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+				<cloudhub:create-notification domain="${cloudhub.domain}" doc:name="Create Notification" doc:id="0a5ef981-3ae4-429f-9e4e-273ed9afd223" config-ref="CloudHub_Config" priority="ERROR" >
+					<cloudhub:message ><![CDATA[#[payload.logentry]]]></cloudhub:message>
+				</cloudhub:create-notification>
 				<anypoint-mq:ack doc:name="Ack" doc:id="683968c8-c914-4a3d-badf-2ba8dc1dc93f" config-ref="Anypoint_MQ_Config-Onetrust" ackToken="#[vars.ackToken]" />
 			</on-error-continue>
 		</error-handler>
