@@ -33,3 +33,4 @@ exchange-docs/home.md
 .classpath
 .project
 src/main/resources/prod/config-sec.yaml
+src/main/resources/config-sec.yaml
