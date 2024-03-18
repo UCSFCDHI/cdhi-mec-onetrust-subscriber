@@ -46,6 +46,7 @@ output application/json
 }]]></ee:set-payload>
 			</ee:message>
 		</ee:transform>
+		<logger level="INFO" doc:name="Logger" doc:id="4cf4d9e0-267d-4905-925e-7f48c03439ef" message="#[payload]"/>
 		<flow-ref doc:name="onetrust-link-identities-post" doc:id="acd482bf-92fa-441e-b345-e85f290663df" name="onetrust-link-identities-post" />
 		<ee:transform doc:name="Transform Message" doc:id="f5a22c38-5f6d-466e-90a2-5552a7b9b5e7" >
 			<ee:message >

@@ -39,7 +39,11 @@ http://www.mulesoft.org/schema/mule/anypoint-mq http://www.mulesoft.org/schema/m
 		</sfdc-marketing-cloud-rest:oauth-client-credentials-connection>
 	</sfdc-marketing-cloud-rest:config>
 	<http:request-config name="HTTP_Request_OneTrust" doc:name="HTTP Request configuration" doc:id="9532fa31-cd31-48e7-92a5-50e28f9fddd9" >
-		<http:request-connection protocol="HTTPS" host="${onetrust.host}" />
+		<http:request-connection protocol="HTTPS" host="${onetrust.host}" >
+			<reconnection >
+				<reconnect-forever />
+			</reconnection>
+		</http:request-connection>
 	</http:request-config>
 	<http:request-config name="HTTP_Request_OneTrust_PrivacyPortal" doc:name="HTTP Request configuration" doc:id="8a1acf91-502d-4e3a-b7da-859de51c7850" >
 		<http:request-connection protocol="HTTPS" host="${onetrust.privacy_host}" />
