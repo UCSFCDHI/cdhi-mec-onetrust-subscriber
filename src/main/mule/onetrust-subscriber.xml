@@ -29,7 +29,7 @@ read( payload, "application/json")
 			</ee:message>
 		</ee:transform>
 		<set-variable value="#[payload]" doc:name="tmpPayload" doc:id="d4017077-4a5a-4dd6-9825-99a7d5535e33" variableName="tmpPayload"/>
-		<set-variable value="${secure::onetrust.api_token}" doc:name="api_token" doc:id="1293e150-02a2-46b0-9121-e5434ff78453" variableName="api_token" />
+		<flow-ref doc:name="onetrust-token" doc:id="df319e6e-489e-43d4-9fc1-2cc7bbf307d2" name="onetrust-token"/>
 		<flow-ref doc:name="onetrust-subscriber-child-profile" doc:id="13d7c825-1439-4fa4-b8bd-967a5c23f11d" name="onetrust-subscriber-child-profile"/>
 		<flow-ref doc:name="onetrust-subscriber-parent-profile" doc:id="fdd06c2b-7628-4999-84a6-83a6158139fe" name="onetrust-subscriber-parent-profile"/>
 		<ee:transform doc:name="Transform Message" doc:id="f405fa8f-952f-4ea1-81f0-68ec5a790a47" >
@@ -47,7 +47,9 @@ output application/json
 			</ee:message>
 		</ee:transform>
 		<logger level="INFO" doc:name="Logger" doc:id="4cf4d9e0-267d-4905-925e-7f48c03439ef" message="#[payload]"/>
-		<flow-ref doc:name="onetrust-link-identities-post" doc:id="acd482bf-92fa-441e-b345-e85f290663df" name="onetrust-link-identities-post" />
+		<until-successful maxRetries="7" doc:name="Until Successful" doc:id="36928887-2df7-46a1-bdd2-9e4baec8e79f" millisBetweenRetries="5000">
+			<flow-ref doc:name="onetrust-link-identities-post" doc:id="acd482bf-92fa-441e-b345-e85f290663df" name="onetrust-link-identities-post" />
+		</until-successful>
 		<ee:transform doc:name="Transform Message" doc:id="f5a22c38-5f6d-466e-90a2-5552a7b9b5e7" >
 			<ee:message >
 				<ee:set-payload ><![CDATA[%dw 2.0

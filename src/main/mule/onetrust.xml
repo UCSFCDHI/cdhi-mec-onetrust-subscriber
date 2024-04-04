@@ -1,10 +1,75 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:http="http://www.mulesoft.org/schema/mule/http"
-	xmlns="http://www.mulesoft.org/schema/mule/core"
-	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+<mule xmlns:os="http://www.mulesoft.org/schema/mule/os" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
 http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
-http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/os http://www.mulesoft.org/schema/mule/os/current/mule-os.xsd">
+	<os:object-store name="Object_store_OT_token" doc:name="Object store" doc:id="15afdcb9-9f57-4024-9388-81eacbfe4e5f" entryTtl="365" entryTtlUnit="DAYS" expirationIntervalUnit="HOURS"/>
+	<sub-flow name="onetrust-token" doc:id="c07be9c8-9a8a-4b9e-8d4b-d2638d637b75" >
+		<os:retrieve doc:name="Retrieve" doc:id="13c98eeb-eb06-426c-855c-937444546a1a" key="#['token']" objectStore="Object_store_OT_token" target="token_payload">
+			<os:default-value ><![CDATA[#[{}]]]></os:default-value>
+		</os:retrieve>
+		<choice doc:name="Choice" doc:id="75ceb87e-3762-4c0e-9dfd-f2d9c5187f3d" >
+			<when expression="#[isEmpty(vars.token_payload)]">
+				<flow-ref doc:name="onetrust-generate-store-token" doc:id="a9fc3e55-f996-45b5-aac1-2db0567add4b" name="onetrust-generate-store-token"/>
+			</when>
+			<otherwise>
+				<set-variable value="#[%dw 2.0&#10;import * from dw::util::Coercions&#10;output application/dw&#10;---&#10;toDateTime( vars.token_payload.expiration )]" doc:name="expiration" doc:id="3a571846-1fb1-4b78-b1d5-28e4fdc3b485" variableName="expiration" mimeType="application/dw"/>
+				<set-variable value="#[%dw 2.0&#10;import * from dw::util::Coercions&#10;output application/dw&#10;---&#10;toDateTime( now() )]" doc:name="nw" doc:id="811124ba-9181-4bc9-8b43-e131bd2f070e" variableName="nw" mimeType="application/dw"/>
+				<choice doc:name="Choice" doc:id="788c6d98-c700-42d8-ac7f-fdc9b892e55c">
+			<when expression="#[vars.expiration &lt; vars.nw]" >
+						<flow-ref doc:name="onetrust-generate-store-token" doc:id="1992afda-bf37-42ba-8203-3fe32265961b" name="onetrust-generate-store-token" />
+					</when>
+					<otherwise >
+						<logger level="INFO" doc:name="Logger" doc:id="f8897e75-d58b-4153-b226-4840e3824f67" message="#['api_token retrieved from OS']"/>
+					</otherwise>
+		</choice>
+			</otherwise>
+		</choice>
+		<set-variable value="#[vars.token_payload.access_token]" doc:name="api_token" doc:id="39f6c3e9-7bd4-4ee1-8782-8976c726a825" variableName="api_token" />
+	</sub-flow>
+	<sub-flow name="onetrust-generate-store-token" doc:id="fcb31d1c-ca6e-49cc-a926-df31049900ea" >
+		<http:request method="POST" doc:name="Request" doc:id="a2175ac4-a6dd-45d8-858d-f777953e66b8" config-ref="HTTP_Request_OneTrust" path="/api/access/v1/oauth/token" outputMimeType="application/json" target="token_payload">
+			<http:body ><![CDATA[#[%dw 2.0
+
+output application/x-www-form-urlencoded
+---
+{
+    "grant_type": "client_credentials",
+    "client_id": p('onetrust.client_id'),
+    "client_secret": p('secure::onetrust.client_secret')
+}]]]></http:body>
+			<http:headers ><![CDATA[#[output application/java
+---
+{
+	Authorization : vars.apiToken
+}]]]></http:headers>
+		</http:request>
+		<set-variable value="#[vars.token_payload.expires_in]" doc:name="expires_in" doc:id="e529b2a4-d6e7-407a-b9c5-f84bb3d8ece2" variableName="expires_in"/>
+		<ee:transform doc:name="Transform Message" doc:id="ca12e9e8-c026-41d7-b9c2-7a9f4c917315" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[payload]]></ee:set-payload>
+			</ee:message>
+			<ee:variables >
+				<ee:set-variable variableName="token_payload" ><![CDATA[%dw 2.0
+import * from dw::core::Periods
+import * from dw::util::Coercions
+
+var expires = 'PT' ++ vars.expires_in/3600 ++ 'H'
+output application/json
+---
+{
+	expiration: toDateTime( now() + expires as Period ),
+	access_token: vars.token_payload.access_token
+}]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+		<os:store doc:name="Store" doc:id="11af48a2-e233-4b51-9c96-e1c70aa5991a" key="#['token']" objectStore="Object_store_OT_token">
+			<os:value ><![CDATA[#[vars.token_payload]]]></os:value>
+		</os:store>
+	</sub-flow>
 	<sub-flow name="onetrust-consentreceipts-post" doc:id="3781ed88-4abd-4682-9f31-87272bba58f3" >
 		<set-variable value="#['Bearer ' ++ vars.api_token]" doc:name="apiToken" doc:id="70a297c4-c90f-4f83-9f2b-a60368ac720d" variableName="apiToken" />
 		<http:request method="POST" doc:name="Request" doc:id="257acd1e-f84f-4f8a-8ed5-9deff2dde538" config-ref="HTTP_Request_OneTrust_PrivacyPortal" path="/request/v1/consentreceipts">
