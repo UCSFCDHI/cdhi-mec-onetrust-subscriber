@@ -25,12 +25,13 @@ messageQueue:
   mqUrl: "https://mq-us-west-2.anypoint.mulesoft.com/api/v1/organizations/8f9ff49c-7213-45d6-ae70-a89968883c15/environments/034cb83d-ac30-489a-af9e-560493ddb656"
   client_id: "427ed127872b41a3b5d8bca3522adf2e"
   queueName: "individual-onetrust-in"
+  queueNameBulk: "bulk-patient-onetrust-in-dev"
   circuitBreaker:
     errors: "HTTP:SERVICE_UNAVAILABLE, HTTP:CONNECTIVITY, HTTP:TIMEOUT, HTTP:RETRY_EXHAUSTED, HTTP:TOO_MANY_REQUESTS, HTTP:UNAUTHORIZED, HTTP:NOT_FOUND, MULE:RETRY_EXHAUSTED"
     threshold: "3"
     tripTimeout: "2"
 cloudhub:
   clientid: "cf2ea576bb2c4c8e864d333dc0c1c95a" #see Keeper.WSD-READ-APPLICATION
-  environment: "034cb83d-ac30-489a-af9e-560493ddb656"
-  domain: "stage-mec-onetrust-subscriber"
+  environment: "d1423606-a25e-4acb-a212-67f726eb3ea9"
+  domain: "stage-wasd-mec-onetrust-subscriber"
 

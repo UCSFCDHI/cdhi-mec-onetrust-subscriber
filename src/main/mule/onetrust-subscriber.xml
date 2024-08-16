@@ -130,7 +130,9 @@ output application/java
 	</flow>
 	<sub-flow name="onetrust-subscriber-child-profile" doc:id="34b470c9-b922-421c-9a3e-a3f96fbbf905" >
 		<set-variable value="#[payload.collectionPointChild]" doc:name="collectionpt" doc:id="ae694b3d-1c97-417d-a18e-4263fa9c39f5" variableName="collectionpt" />
-		<flow-ref doc:name="onetrust-collectionpt-get" doc:id="7a3c5b45-5916-4f0a-99d7-21dcf5673c68" name="onetrust-collectionpt-get" />
+		<until-successful maxRetries="5" doc:name="Until Successful" doc:id="42ee0544-ad1d-4a9a-ba6d-fd58ad7fc3b4" >
+			<flow-ref doc:name="onetrust-collectionpt-get" doc:id="7a3c5b45-5916-4f0a-99d7-21dcf5673c68" name="onetrust-collectionpt-get" />
+		</until-successful>
 		<set-variable value="#[payload.token]" doc:name="cpToken" doc:id="f6e784a2-74a5-4378-9656-f8a0fc2baaa1" variableName="cpToken" />
 		<ee:transform doc:name="Transform Message" doc:id="1b5e69f6-5304-490c-91a4-cbb6dce27147" >
 			<ee:message >
@@ -155,7 +157,9 @@ output application/json
 	</sub-flow>
 	<sub-flow name="onetrust-subscriber-parent-profile" doc:id="aef93c9c-144f-4571-ab87-6f61db2a55be" >
 		<set-variable value="#[vars.tmpPayload.collectionPointParent]" doc:name="collectionpt" doc:id="13acd4a4-7a5e-427c-bd61-1d79535f480a" variableName="collectionpt" />
-		<flow-ref doc:name="onetrust-collectionpt-get" doc:id="60a17e0e-628d-4039-97fe-c32cba865ebf" name="onetrust-collectionpt-get" />
+		<until-successful maxRetries="5" doc:name="Until Successful" doc:id="5972c054-7810-401a-9b05-5aa4a746c2a9" >
+			<flow-ref doc:name="onetrust-collectionpt-get" doc:id="60a17e0e-628d-4039-97fe-c32cba865ebf" name="onetrust-collectionpt-get" />
+		</until-successful>
 		<set-variable value="#[payload.token]" doc:name="cpToken" doc:id="97cf1296-66c9-43b9-b8a0-26d76d5c50bc" variableName="cpToken" />
 		<ee:transform doc:name="Transform Message" doc:id="54d99607-8b9b-4d4e-957d-b86dce3ff44b" >
 			<ee:message >
@@ -176,4 +180,133 @@ output application/json
 		</ee:transform>
 		<flow-ref doc:name="onetrust-consentreceipts-post" doc:id="a128a03d-d951-45fe-ac69-236e266d01c1" name="onetrust-consentreceipts-post" />
 	</sub-flow>
+	<flow name="anypointmq-onetrust-subscriber-bulk" doc:id="e0b30f63-cd6c-4912-95e6-903f1d6332e4" maxConcurrency="1">
+		<anypoint-mq:subscriber doc:name="Subscriber bulk-patient-onetrust-in" doc:id="4f430af5-2005-4348-835a-e98360a270b6" config-ref="Anypoint_MQ_Config-Onetrust" destination="${messageQueue.queueNameBulk}" outputMimeType="application/json" acknowledgementMode="MANUAL">
+			<reconnect />
+			<anypoint-mq:subscriber-type >
+				<anypoint-mq:prefetch maxLocalMessages="${messageQueue.circuitBreaker.threshold}" />
+			</anypoint-mq:subscriber-type>
+			<anypoint-mq:circuit-breaker onErrorTypes="${messageQueue.circuitBreaker.errors}" tripTimeout="${messageQueue.circuitBreaker.tripTimeout}" errorsThreshold="${messageQueue.circuitBreaker.threshold}" tripTimeoutUnit="MINUTES"/>
+		</anypoint-mq:subscriber>
+		<set-variable value="#[now()]" doc:name="startTime" doc:id="e5927127-4364-4ce0-9747-76740ce0b0ef" variableName="startTime"/>
+		<set-variable value="#[attributes.ackToken]" doc:name="ackToken" doc:id="e21a080d-89a6-4394-8693-6ef256b1fc75" variableName="ackToken" />
+		<ee:transform doc:name="Transform Message" doc:id="13d51feb-9798-4a15-bb85-118b50e54268" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+if (typeOf(payload) == 'string') read( payload, "application/json") else payload
+]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<set-variable value="#[payload]" doc:name="tmpPayload" doc:id="8d875b7c-a151-45b3-86dc-54db2ce567e2" variableName="tmpPayload"/>
+		<flow-ref doc:name="onetrust-token" doc:id="ab0c9a2c-c138-426d-9be7-ab0e76821d7a" name="onetrust-token"/>
+		<flow-ref doc:name="onetrust-subscriber-child-profile" doc:id="f9202f6b-4639-4e31-b6af-a87294ca3478" name="onetrust-subscriber-child-profile"/>
+		<flow-ref doc:name="onetrust-subscriber-parent-profile" doc:id="87dfdebe-1af2-4f4b-bb28-2ef0769f5635" name="onetrust-subscriber-parent-profile"/>
+		<ee:transform doc:name="Transform Message" doc:id="0ab9e44a-8443-46b4-b5c4-1e28d4a0cbab" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	identifiers: [
+		vars.tmpPayload.identifier,
+		vars.tmpPayload.parentPrimaryIdentifiers[0].parentIdentifier
+	],
+	primaryIdentifier: vars.tmpPayload.parentPrimaryIdentifiers[0].parentIdentifier
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<logger level="INFO" doc:name="Logger" doc:id="eb5a8f06-b57f-4d4c-9e75-41bc6c225dae" message="#[payload]"/>
+		<until-successful maxRetries="7" doc:name="Until Successful" doc:id="957c2df9-e5de-4f55-8cd0-3b5f6d3fbe68" millisBetweenRetries="5000">
+			<flow-ref doc:name="onetrust-link-identities-post" doc:id="30940b27-f8a7-419d-b707-0994e8895d90" name="onetrust-link-identities-post" />
+		</until-successful>
+		<ee:transform doc:name="Transform Message" doc:id="91ca9547-9df4-4993-97a6-6a725826ea89" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+
+[{
+  "Receipt__c": write(
+    {
+	  salesforce: vars.tmpPayload,
+	  onetrust: payload
+    }
+	, "application/json")
+} as Object {class: "java.util.HashMap"}]
+]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<set-variable value="#[now()]" doc:name="endTime" doc:id="7798e697-da41-45a7-a78a-51caf55e032b" variableName="endTime" />
+		<logger level="INFO" doc:name="Logger" doc:id="542a89ab-3b2a-4c17-bf88-6465703050b7" message="#['POSTed OT Data Subject Creation: ' ++ (vars.endTime - vars.startTime)]" />
+		<anypoint-mq:ack doc:name="Ack" doc:id="d435734a-0a9d-4779-9e6e-b0e6d0f85768" config-ref="Anypoint_MQ_Config-Onetrust" ackToken="#[vars.ackToken]"/>
+		<error-handler >
+			<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="7fe4690c-a56c-4282-a25f-1bbf95088c1a" type="${messageQueue.circuitBreaker.errors}">
+				<logger level="ERROR" doc:name="log" doc:id="f0772f61-f5ed-4dc7-b7a8-0b3dd1257741" message="#['onetrust-subscriber ERROR']" />
+				<ee:transform doc:name="Transform Message" doc:id="f46e2564-7a92-488c-aa65-e8f79c9fdc45">
+					<ee:message>
+						<ee:set-payload><![CDATA[%dw 2.0
+
+var entry = error.detailedDescription
+output application/java
+---
+{
+	datetime: now() as LocalDateTime,
+	logentry: 'ERROR ONETRUST BULK SUBSCRIBER: ' ++ entry
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+				<cloudhub:create-notification domain="${cloudhub.domain}" doc:id="ba69825c-1e5f-4ce5-9211-45b4ae78bd97" config-ref="CloudHub_Config" priority="ERROR" doc:name="Create Notification">
+					<cloudhub:message><![CDATA[#[payload.logentry]]]></cloudhub:message>
+				</cloudhub:create-notification>
+				<anypoint-mq:nack doc:name="Nack" doc:id="557d517b-8a6f-4699-8299-95bd37f75198" config-ref="Anypoint_MQ_Config-Onetrust" ackToken="#[vars.ackToken]" />
+			</on-error-propagate>
+			<on-error-continue enableNotifications="true" logException="true" doc:name="On Error Continue" doc:id="8258a426-36d6-412f-8e04-1da2798c7a48" type="ANY">
+				<anypoint-mq:publish doc:name="Publish:bulk- onetrust-error" doc:id="de36ba2c-52c1-401f-bf1c-c0d1c18996ed" config-ref="Anypoint_MQ_Config-Onetrust" destination="bulk-onetrust-error-dev"/>
+				<logger level="ERROR" doc:name="log" doc:id="409c1c22-39f9-4afb-8f4f-8094367e40f7" message="#['onetrust-subscriber ERROR']" />
+				<ee:transform doc:name="Transform Message" doc:id="ef4688ae-ffbf-421c-8a5f-202af95d375e" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+
+var entry = error.detailedDescription
+output application/java
+---
+{
+	datetime: now() as LocalDateTime,
+	logentry: 'ERROR ONETRUST BULK SUBSCRIBER: ' ++ entry
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+				<cloudhub:create-notification domain="${cloudhub.domain}" doc:name="Create Notification" doc:id="70147179-3c3a-43eb-9b2b-f96e42b77fd6" config-ref="CloudHub_Config" priority="ERROR" >
+					<cloudhub:message ><![CDATA[#[payload.logentry]]]></cloudhub:message>
+				</cloudhub:create-notification>
+				<anypoint-mq:ack doc:name="Ack" doc:id="e2b33c5c-df51-4b6d-adab-24efa4b07b7c" config-ref="Anypoint_MQ_Config-Onetrust" ackToken="#[vars.ackToken]" />
+			</on-error-continue>
+		</error-handler>
+	</flow>
+	<flow name="onetrust-subscriber-bulk-retry" doc:id="87b75cf4-f16f-4237-918b-ecc915682631" initialState="started">
+		<anypoint-mq:subscriber doc:name="Subscriber: onetrust-dead-letter" doc:id="6707f4c1-a63b-45b3-bde3-790f2b0e8606" config-ref="Anypoint_MQ_Config-Onetrust" destination="bulk-onetrust-dead-letter-dev">
+			<redelivery-policy maxRedeliveryCount="1" objectStore="Object_store_onetrust-dead-letter" />
+			<anypoint-mq:subscriber-type >
+				<anypoint-mq:polling >
+					<scheduling-strategy >
+						<fixed-frequency frequency="60" timeUnit="MINUTES" />
+					</scheduling-strategy>
+				</anypoint-mq:polling>
+			</anypoint-mq:subscriber-type>
+		</anypoint-mq:subscriber>
+		<logger level="INFO" doc:name="Logger" doc:id="6bbd654e-942d-4c90-a3a9-d4fc0fe4851d" message="#['onetrust-dead-letter RETRY']"/>
+		<anypoint-mq:publish doc:name="Publish: bulk-patient-onetrust-in" doc:id="12045e77-1d58-48a5-b67d-87e49ba5a5f7" config-ref="Anypoint_MQ_Config-Onetrust" destination="${messageQueue.queueNameBulk}" />
+	</flow>
+	<flow name="onetrust-subscriber-replay-error" doc:id="1e9a0cc5-37f8-4f52-91e7-f133d0e4d0a7" >
+		<scheduler doc:name="Scheduler" doc:id="34ecab90-49b9-4218-ab5c-471e052332da" >
+			<scheduling-strategy >
+				<fixed-frequency frequency="10" timeUnit="MINUTES"/>
+			</scheduling-strategy>
+		</scheduler>
+		<anypoint-mq:consume doc:name="Consume" doc:id="6f59c381-7c09-4e99-9bc6-1b792a0d5a80" config-ref="Anypoint_MQ_Config-Onetrust" destination="bulk-onetrust-error-dev" outputMimeType="text/plain"/>
+		<anypoint-mq:publish doc:name="Publish: bulk-patient-onetrust-in" doc:id="d7674b38-30d5-4f29-8dd2-15a897728d4b" config-ref="Anypoint_MQ_Config-Onetrust" destination="${messageQueue.queueNameBulk}" />
+	</flow>
+
 </mule>
