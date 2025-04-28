@@ -12,3 +12,4 @@ messageQueue:
 cloudhub:
 #see Keeper: WSD-READ-APPLICATION
   password: "![GDriVQgyTQuKiMA9TgwWGz3B5lSDV++fPMgTnYsyATOz+BVbZoaz6w==]"
+  

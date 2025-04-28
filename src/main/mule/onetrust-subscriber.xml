@@ -263,7 +263,7 @@ output application/java
 				<anypoint-mq:nack doc:name="Nack" doc:id="557d517b-8a6f-4699-8299-95bd37f75198" config-ref="Anypoint_MQ_Config-Onetrust" ackToken="#[vars.ackToken]" />
 			</on-error-propagate>
 			<on-error-continue enableNotifications="true" logException="true" doc:name="On Error Continue" doc:id="8258a426-36d6-412f-8e04-1da2798c7a48" type="ANY">
-				<anypoint-mq:publish doc:name="Publish:bulk- onetrust-error" doc:id="de36ba2c-52c1-401f-bf1c-c0d1c18996ed" config-ref="Anypoint_MQ_Config-Onetrust" destination="bulk-onetrust-error-dev"/>
+				<anypoint-mq:publish doc:name="Publish:bulk- onetrust-error" doc:id="de36ba2c-52c1-401f-bf1c-c0d1c18996ed" config-ref="Anypoint_MQ_Config-Onetrust" destination="bulk-onetrust-error"/>
 				<logger level="ERROR" doc:name="log" doc:id="409c1c22-39f9-4afb-8f4f-8094367e40f7" message="#['onetrust-subscriber ERROR']" />
 				<ee:transform doc:name="Transform Message" doc:id="ef4688ae-ffbf-421c-8a5f-202af95d375e" >
 					<ee:message >
@@ -286,7 +286,7 @@ output application/java
 		</error-handler>
 	</flow>
 	<flow name="onetrust-subscriber-bulk-retry" doc:id="87b75cf4-f16f-4237-918b-ecc915682631" initialState="started">
-		<anypoint-mq:subscriber doc:name="Subscriber: onetrust-dead-letter" doc:id="6707f4c1-a63b-45b3-bde3-790f2b0e8606" config-ref="Anypoint_MQ_Config-Onetrust" destination="bulk-onetrust-dead-letter-dev">
+		<anypoint-mq:subscriber doc:name="Subscriber: onetrust-dead-letter" doc:id="6707f4c1-a63b-45b3-bde3-790f2b0e8606" config-ref="Anypoint_MQ_Config-Onetrust" destination="bulk-onetrust-dead-letter">
 			<redelivery-policy maxRedeliveryCount="1" objectStore="Object_store_onetrust-dead-letter" />
 			<anypoint-mq:subscriber-type >
 				<anypoint-mq:polling >
@@ -299,13 +299,13 @@ output application/java
 		<logger level="INFO" doc:name="Logger" doc:id="6bbd654e-942d-4c90-a3a9-d4fc0fe4851d" message="#['onetrust-dead-letter RETRY']"/>
 		<anypoint-mq:publish doc:name="Publish: bulk-patient-onetrust-in" doc:id="12045e77-1d58-48a5-b67d-87e49ba5a5f7" config-ref="Anypoint_MQ_Config-Onetrust" destination="${messageQueue.queueNameBulk}" />
 	</flow>
-	<flow name="onetrust-subscriber-replay-error" doc:id="1e9a0cc5-37f8-4f52-91e7-f133d0e4d0a7" >
+	<flow name="onetrust-subscriber-replay-error" doc:id="1e9a0cc5-37f8-4f52-91e7-f133d0e4d0a7" initialState="stopped">
 		<scheduler doc:name="Scheduler" doc:id="34ecab90-49b9-4218-ab5c-471e052332da" >
 			<scheduling-strategy >
 				<fixed-frequency frequency="10" timeUnit="MINUTES"/>
 			</scheduling-strategy>
 		</scheduler>
-		<anypoint-mq:consume doc:name="Consume" doc:id="6f59c381-7c09-4e99-9bc6-1b792a0d5a80" config-ref="Anypoint_MQ_Config-Onetrust" destination="bulk-onetrust-error-dev" outputMimeType="text/plain"/>
+		<anypoint-mq:consume doc:name="Consume" doc:id="6f59c381-7c09-4e99-9bc6-1b792a0d5a80" config-ref="Anypoint_MQ_Config-Onetrust" destination="bulk-onetrust-error" outputMimeType="text/plain"/>
 		<anypoint-mq:publish doc:name="Publish: bulk-patient-onetrust-in" doc:id="d7674b38-30d5-4f29-8dd2-15a897728d4b" config-ref="Anypoint_MQ_Config-Onetrust" destination="${messageQueue.queueNameBulk}" />
 	</flow>
 
